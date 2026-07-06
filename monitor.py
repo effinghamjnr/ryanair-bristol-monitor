@@ -12,6 +12,7 @@ def send_discord(message):
 
     requests.post(WEBHOOK_URL, json={"content": message})
 
+
 def load_snapshot():
     try:
         with open("snapshot.json", "r") as f:
@@ -19,32 +20,38 @@ def load_snapshot():
     except:
         return {}
 
+
 def save_snapshot(data):
     with open("snapshot.json", "w") as f:
         json.dump(data, f, indent=2)
 
+
 def compare(old, new):
     changes = []
 
-    # Check new routes
+    # New routes
     for route in new:
         if route not in old:
             changes.append(f"🆕 New route: {route}")
 
-    # Check removed routes
+    # Removed routes
     for route in old:
         if route not in new:
             changes.append(f"❌ Removed route: {route}")
 
-    # Check frequency changes
+    # Frequency changes
     for route in new:
         if route in old:
-            if new[route]["freq"] != old[route]["freq"]:
+            old_freq = old[route].get("freq")
+            new_freq = new[route].get("freq")
+
+            if old_freq != new_freq:
                 changes.append(
-                    f"📊 {route}: {old[route]['freq']} → {new[route]['freq']} flights/week"
+                    f"📊 {route}: {old_freq} → {new_freq} flights/week"
                 )
 
     return changes
+
 
 def main():
     print("Checking Ryanair Bristol routes...")
@@ -61,6 +68,7 @@ def main():
         print("No changes detected")
 
     save_snapshot(new)
+
 
 if __name__ == "__main__":
     main()
