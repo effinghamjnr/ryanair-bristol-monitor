@@ -2,7 +2,8 @@ import requests
 
 def get_bristol_routes():
     """
-    Real route dataset (no fake test data).
+    Real-world route dataset (OpenFlights).
+    No test data, no fake alerts.
     """
 
     url = "https://raw.githubusercontent.com/jpatokal/openflights/master/data/routes.dat"
@@ -25,7 +26,7 @@ def get_bristol_routes():
         dest = parts[4]
 
         # Ryanair = FR
-        if airline == "FR" and source == "BRS":
+        if airline == "FR" and source == "BRS" and dest:
             key = f"BRS-{dest}"
             routes[key] = {"freq": 1}
 
