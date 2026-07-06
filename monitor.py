@@ -44,7 +44,6 @@ def compare(old, new):
                     f"📊 {route}: {old[route]['freq']} → {new[route]['freq']}"
                 )
 
-    # remove duplicates safely
     return list(dict.fromkeys(changes))
 
 
