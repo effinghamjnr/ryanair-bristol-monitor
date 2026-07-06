@@ -1,39 +1,60 @@
-from playwright.sync_api import sync_playwright
+import requests
+import datetime
 
 def get_bristol_routes():
     """
-    Live Ryanair scrape (simple extraction version).
+    Real-ish Ryanair route inference using flight search patterns.
+    This checks multiple destination candidates and infers availability.
     """
 
+    base_url = "https://www.ryanair.com/api/farfnd/3/oneWayFares"
+
+    # Known Ryanair destinations from Bristol region (expandable list)
+    destinations = [
+        "ALC",  # Alicante
+        "AGP",  # Malaga
+        "PMI",  # Palma
+        "DUB",  # Dublin
+        "KRK",  # Krakow
+        "FAO",  # Faro
+        "TSF",  # Venice (Treviso)
+        "BGY",  # Milan Bergamo
+        "BCN",  # Barcelona
+        "OPO"   # Porto
+    ]
+
+    today = datetime.date.today()
     routes = {}
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
 
-        page.goto("https://www.ryanair.com/gb/en")
+    for dest in destinations:
+        try:
+            params = {
+                "departureAirportIataCode": "BRS",
+                "arrivalAirportIataCode": dest,
+                "from": today.isoformat(),
+                "to": (today + datetime.timedelta(days=30)).isoformat()
+            }
 
-        page.wait_for_timeout(5000)
+            r = requests.get(base_url, params=params, headers=headers, timeout=10)
 
-        content = page.content().lower()
+            if r.status_code != 200:
+                continue
 
-        # Known common Ryanair destinations from Bristol area
-        candidates = [
-            "alicante",
-            "malaga",
-            "palma",
-            "dublin",
-            "krakow",
-            "faro",
-            "turin",
-            "barcelona",
-            "rome"
-        ]
+            data = r.json()
 
-        for city in candidates:
-            if city in content:
-                routes[f"BRS-{city.upper()}"] = {"freq": 1}
+            fares = data.get("fares", [])
 
-        browser.close()
+            # If Ryanair returns flights → route exists
+            if len(fares) > 0:
+                routes[f"BRS-{dest}"] = {
+                    "freq": len(fares)  # proxy for availability strength
+                }
+
+        except:
+            continue
 
     return routes
