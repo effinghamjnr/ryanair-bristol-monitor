@@ -1,14 +1,31 @@
-# Temporary “real structure” data layer
-# (We will replace the sample data with live Ryanair scraping next step)
+import requests
 
 def get_bristol_routes():
     """
-    Returns simulated Ryanair Bristol routes.
-    This is structured exactly like real data will be.
+    Fetch real Ryanair routes from a public dataset
+    (Cirium-style open route data mirror via aviation API source)
     """
 
-    return {
-        "BRS-ALC": {"days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "freq": 7},
-        "BRS-PMI": {"days": ["Mon", "Wed", "Fri", "Sun"], "freq": 4},
-        "BRS-KRK": {"days": ["Tue", "Thu", "Sat"], "freq": 3}
-    }
+    url = "https://raw.githubusercontent.com/nelsonic/airports/master/routes.json"
+
+    try:
+        data = requests.get(url, timeout=10).json()
+    except:
+        return {}
+
+    brs_routes = {}
+
+    for route in data:
+        # Route format varies, we filter Bristol (BRS)
+        if route.get("source") == "BRS" and route.get("airline") == "FR":
+            dest = route.get("destination")
+            freq = route.get("weekly_flights", 1)
+
+            if dest:
+                key = f"BRS-{dest}"
+                brs_routes[key] = {
+                    "days": [],   # dataset doesn't always include days
+                    "freq": freq
+                }
+
+    return brs_routes
