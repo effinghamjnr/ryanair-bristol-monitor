@@ -29,26 +29,24 @@ def save_snapshot(data):
 def compare(old, new):
     changes = []
 
-    # New routes
+    # new routes
     for route in new:
         if route not in old:
             changes.append(f"🆕 New route: {route}")
 
-    # Removed routes
+    # removed routes
     for route in old:
         if route not in new:
             changes.append(f"❌ Removed route: {route}")
 
-    # Frequency changes
+    # frequency changes
     for route in new:
         if route in old:
             old_freq = old[route].get("freq")
             new_freq = new[route].get("freq")
 
             if old_freq != new_freq:
-                changes.append(
-                    f"📊 {route}: {old_freq} → {new_freq} flights/week"
-                )
+                changes.append(f"📊 {route}: {old_freq} → {new_freq} flights/week")
 
     return changes
 
@@ -62,8 +60,7 @@ def main():
     changes = compare(old, new)
 
     if changes:
-        message = "🚨 Ryanair Bristol Update\n\n" + "\n".join(changes)
-        send_discord(message)
+        send_discord("🚨 Ryanair Bristol Update\n\n" + "\n".join(changes))
     else:
         print("No changes detected")
 
