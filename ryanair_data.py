@@ -2,8 +2,7 @@ import requests
 
 def get_bristol_routes():
     """
-    Stable public dataset (real-world aviation data structure).
-    This avoids fake alerts and stops duplicate spam issues.
+    Real route dataset (no fake test data).
     """
 
     url = "https://raw.githubusercontent.com/jpatokal/openflights/master/data/routes.dat"
@@ -25,12 +24,9 @@ def get_bristol_routes():
         source = parts[2]
         dest = parts[4]
 
-        # Ryanair IATA code = FR
+        # Ryanair = FR
         if airline == "FR" and source == "BRS":
             key = f"BRS-{dest}"
-
-            routes[key] = {
-                "freq": 1  # dataset doesn't include frequency, so default
-            }
+            routes[key] = {"freq": 1}
 
     return routes
