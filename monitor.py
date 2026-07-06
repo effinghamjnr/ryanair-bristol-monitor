@@ -1,21 +1,16 @@
 import os
 import json
 import requests
-from datetime import datetime
+from ryanair_data import get_bristol_routes
 
-# Get Discord webhook from GitHub Secrets (we'll set this in Step 5)
 WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK")
 
 def send_discord(message):
     if not WEBHOOK_URL:
-        print("No webhook found")
+        print("Missing webhook")
         return
 
-    data = {
-        "content": message
-    }
-
-    requests.post(WEBHOOK_URL, json=data)
+    requests.post(WEBHOOK_URL, json={"content": message})
 
 def load_snapshot():
     try:
@@ -28,28 +23,44 @@ def save_snapshot(data):
     with open("snapshot.json", "w") as f:
         json.dump(data, f, indent=2)
 
-def fake_check_for_changes():
-    """
-    This is temporary.
-    Later we replace this with real Ryanair data.
-    """
-    return {
-        "change_detected": True,
-        "message": "Test: Bristol → Alicante frequency increased"
-    }
+def compare(old, new):
+    changes = []
+
+    # Check new routes
+    for route in new:
+        if route not in old:
+            changes.append(f"🆕 New route: {route}")
+
+    # Check removed routes
+    for route in old:
+        if route not in new:
+            changes.append(f"❌ Removed route: {route}")
+
+    # Check frequency changes
+    for route in new:
+        if route in old:
+            if new[route]["freq"] != old[route]["freq"]:
+                changes.append(
+                    f"📊 {route}: {old[route]['freq']} → {new[route]['freq']} flights/week"
+                )
+
+    return changes
 
 def main():
-    print("Running monitor...")
+    print("Checking Ryanair Bristol routes...")
 
-    previous = load_snapshot()
-    result = fake_check_for_changes()
+    old = load_snapshot()
+    new = get_bristol_routes()
 
-    if result["change_detected"]:
-        send_discord("🚨 Ryanair Bristol Update\n\n" + result["message"])
+    changes = compare(old, new)
 
-    save_snapshot(result)
+    if changes:
+        message = "🚨 Ryanair Bristol Update\n\n" + "\n".join(changes)
+        send_discord(message)
+    else:
+        print("No changes detected")
 
-    print("Done.")
+    save_snapshot(new)
 
 if __name__ == "__main__":
     main()
