@@ -1,0 +1,17 @@
+name: Ryanair Bristol Monitor
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"   # every 15 minutes
+  workflow_dispatch:        # allows manual run button
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Print message (test step)
+        run: echo "Monitor is running successfully"
