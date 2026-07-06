@@ -1,60 +1,35 @@
 import requests
-import datetime
 
 def get_bristol_routes():
     """
-    Real-ish Ryanair route inference using flight search patterns.
-    This checks multiple destination candidates and infers availability.
+    Reliable flight route dataset (stable + updateable source).
+    Used instead of blocked Ryanair endpoints.
     """
 
-    base_url = "https://www.ryanair.com/api/farfnd/3/oneWayFares"
+    url = "https://raw.githubusercontent.com/jpatokal/openflights/master/data/routes.dat"
 
-    # Known Ryanair destinations from Bristol region (expandable list)
-    destinations = [
-        "ALC",  # Alicante
-        "AGP",  # Malaga
-        "PMI",  # Palma
-        "DUB",  # Dublin
-        "KRK",  # Krakow
-        "FAO",  # Faro
-        "TSF",  # Venice (Treviso)
-        "BGY",  # Milan Bergamo
-        "BCN",  # Barcelona
-        "OPO"   # Porto
-    ]
+    try:
+        raw = requests.get(url, timeout=10).text.split("\n")
+    except:
+        return {}
 
-    today = datetime.date.today()
     routes = {}
 
-    headers = {
-        "User-Agent": "Mozilla/5.0"
-    }
+    for line in raw:
+        parts = line.split(",")
 
-    for dest in destinations:
-        try:
-            params = {
-                "departureAirportIataCode": "BRS",
-                "arrivalAirportIataCode": dest,
-                "from": today.isoformat(),
-                "to": (today + datetime.timedelta(days=30)).isoformat()
-            }
-
-            r = requests.get(base_url, params=params, headers=headers, timeout=10)
-
-            if r.status_code != 200:
-                continue
-
-            data = r.json()
-
-            fares = data.get("fares", [])
-
-            # If Ryanair returns flights → route exists
-            if len(fares) > 0:
-                routes[f"BRS-{dest}"] = {
-                    "freq": len(fares)  # proxy for availability strength
-                }
-
-        except:
+        if len(parts) < 5:
             continue
+
+        airline = parts[0]
+        source = parts[2]
+        dest = parts[4]
+
+        # Ryanair airline code
+        if airline == "FR" and source == "BRS" and dest:
+            key = f"BRS-{dest}"
+            routes[key] = {
+                "freq": 1
+            }
 
     return routes
