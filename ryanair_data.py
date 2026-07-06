@@ -2,30 +2,35 @@ import requests
 
 def get_bristol_routes():
     """
-    Fetch real Ryanair routes from a public dataset
-    (Cirium-style open route data mirror via aviation API source)
+    Stable public dataset (real-world aviation data structure).
+    This avoids fake alerts and stops duplicate spam issues.
     """
 
-    url = "https://raw.githubusercontent.com/nelsonic/airports/master/routes.json"
+    url = "https://raw.githubusercontent.com/jpatokal/openflights/master/data/routes.dat"
 
     try:
-        data = requests.get(url, timeout=10).json()
+        raw = requests.get(url, timeout=10).text.split("\n")
     except:
         return {}
 
-    brs_routes = {}
+    routes = {}
 
-    for route in data:
-        # Route format varies, we filter Bristol (BRS)
-        if route.get("source") == "BRS" and route.get("airline") == "FR":
-            dest = route.get("destination")
-            freq = route.get("weekly_flights", 1)
+    for line in raw:
+        parts = line.split(",")
 
-            if dest:
-                key = f"BRS-{dest}"
-                brs_routes[key] = {
-                    "days": [],   # dataset doesn't always include days
-                    "freq": freq
-                }
+        if len(parts) < 5:
+            continue
 
-    return brs_routes
+        airline = parts[0]
+        source = parts[2]
+        dest = parts[4]
+
+        # Ryanair IATA code = FR
+        if airline == "FR" and source == "BRS":
+            key = f"BRS-{dest}"
+
+            routes[key] = {
+                "freq": 1  # dataset doesn't include frequency, so default
+            }
+
+    return routes
