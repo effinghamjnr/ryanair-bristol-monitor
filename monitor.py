@@ -8,8 +8,9 @@ WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK")
 
 def send_discord(message):
     if not WEBHOOK_URL:
-        print("Missing webhook")
+        print("Missing DISCORD_WEBHOOK")
         return
+
     requests.post(WEBHOOK_URL, json={"content": message})
 
 
@@ -29,14 +30,17 @@ def save_snapshot(data):
 def compare(old, new):
     changes = []
 
+    # new routes
     for route in new:
         if route not in old:
             changes.append(f"🆕 New route: {route}")
 
+    # removed routes
     for route in old:
         if route not in new:
             changes.append(f"❌ Removed route: {route}")
 
+    # frequency changes
     for route in new:
         if route in old:
             if old[route].get("freq") != new[route].get("freq"):
@@ -48,16 +52,20 @@ def compare(old, new):
 
 
 def main():
-    print("Checking Ryanair Bristol routes...")
+    print("Running Ryanair Bristol monitor...")
 
     old = load_snapshot()
     new = get_bristol_routes()
 
+    if not new:
+        print("No data returned from API (skipping run to save quota)")
+        return
+
     changes = compare(old, new)
 
     if changes:
-        msg = "🚨 Ryanair Bristol Update\n\n" + "\n".join(changes)
-        send_discord(msg)
+        message = "🚨 Ryanair Bristol Update\n\n" + "\n".join(changes)
+        send_discord(message)
     else:
         print("No changes detected")
 
