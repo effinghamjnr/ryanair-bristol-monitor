@@ -1,40 +1,42 @@
 import requests
+import os
+
+API_KEY = os.environ.get("AVIATIONSTACK_KEY")
 
 def get_bristol_routes():
     """
-    Stable Ryanair route inference using fallback + real availability check.
-    This avoids empty API responses breaking the system.
+    Pulls real Ryanair-operated routes from Aviationstack.
+    Optimised for low API usage (1 call per day).
     """
 
-    # Known Ryanair Bristol network (seed list)
-    candidates = [
-        "ALC","AGP","PMI","FAO","DUB","KRK",
-        "BCN","OPO","BGY","FCO","TFS","LPA"
-    ]
+    if not API_KEY:
+        print("Missing AVIATIONSTACK_KEY")
+        return {}
+
+    url = "http://api.aviationstack.com/v1/routes"
+
+    params = {
+        "access_key": API_KEY,
+        "dep_iata": "BRS"
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=20)
+        data = response.json()
+    except:
+        return {}
 
     routes = {}
 
-    headers = {
-        "User-Agent": "Mozilla/5.0"
-    }
+    for item in data.get("data", []):
+        airline = item.get("airline", {}).get("iata_code")
+        dest = item.get("arrival", {}).get("iata_code")
 
-    for dest in candidates:
-        try:
-            # lightweight availability check (more reliable than full API)
-            url = f"https://www.ryanair.com/gb/en/cheap-flights/{dest.lower()}"
-
-            r = requests.get(url, headers=headers, timeout=10)
-
-            if r.status_code == 200:
-                content = r.text.lower()
-
-                # heuristic: page exists AND shows flight-related content
-                if "flight" in content or "price" in content:
-                    routes[f"BRS-{dest}"] = {
-                        "freq": 1
-                    }
-
-        except:
-            continue
+        # Only Ryanair
+        if airline == "FR" and dest:
+            key = f"BRS-{dest}"
+            routes[key] = {
+                "freq": 1
+            }
 
     return routes
