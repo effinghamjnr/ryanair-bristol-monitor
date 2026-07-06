@@ -5,11 +5,11 @@ from ryanair_data import get_bristol_routes
 
 WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK")
 
+
 def send_discord(message):
     if not WEBHOOK_URL:
         print("Missing webhook")
         return
-
     requests.post(WEBHOOK_URL, json={"content": message})
 
 
@@ -29,26 +29,23 @@ def save_snapshot(data):
 def compare(old, new):
     changes = []
 
-    # new routes
     for route in new:
         if route not in old:
             changes.append(f"🆕 New route: {route}")
 
-    # removed routes
     for route in old:
         if route not in new:
             changes.append(f"❌ Removed route: {route}")
 
-    # frequency changes
     for route in new:
         if route in old:
-            old_freq = old[route].get("freq")
-            new_freq = new[route].get("freq")
+            if old[route].get("freq") != new[route].get("freq"):
+                changes.append(
+                    f"📊 {route}: {old[route]['freq']} → {new[route]['freq']}"
+                )
 
-            if old_freq != new_freq:
-                changes.append(f"📊 {route}: {old_freq} → {new_freq} flights/week")
-
-    return changes
+    # remove duplicates safely
+    return list(dict.fromkeys(changes))
 
 
 def main():
@@ -60,7 +57,8 @@ def main():
     changes = compare(old, new)
 
     if changes:
-        send_discord("🚨 Ryanair Bristol Update\n\n" + "\n".join(changes))
+        msg = "🚨 Ryanair Bristol Update\n\n" + "\n".join(changes)
+        send_discord(msg)
     else:
         print("No changes detected")
 
