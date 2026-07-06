@@ -1,33 +1,39 @@
-import requests
+from playwright.sync_api import sync_playwright
 
 def get_bristol_routes():
     """
-    Real-world route dataset (OpenFlights).
-    No test data, no fake alerts.
+    Live Ryanair scrape (simple extraction version).
     """
-
-    url = "https://raw.githubusercontent.com/jpatokal/openflights/master/data/routes.dat"
-
-    try:
-        raw = requests.get(url, timeout=10).text.split("\n")
-    except:
-        return {}
 
     routes = {}
 
-    for line in raw:
-        parts = line.split(",")
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
 
-        if len(parts) < 5:
-            continue
+        page.goto("https://www.ryanair.com/gb/en")
 
-        airline = parts[0]
-        source = parts[2]
-        dest = parts[4]
+        page.wait_for_timeout(5000)
 
-        # Ryanair = FR
-        if airline == "FR" and source == "BRS" and dest:
-            key = f"BRS-{dest}"
-            routes[key] = {"freq": 1}
+        content = page.content().lower()
+
+        # Known common Ryanair destinations from Bristol area
+        candidates = [
+            "alicante",
+            "malaga",
+            "palma",
+            "dublin",
+            "krakow",
+            "faro",
+            "turin",
+            "barcelona",
+            "rome"
+        ]
+
+        for city in candidates:
+            if city in content:
+                routes[f"BRS-{city.upper()}"] = {"freq": 1}
+
+        browser.close()
 
     return routes
